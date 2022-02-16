@@ -1,0 +1,150 @@
+---
+- name: Run tests
+  hosts: SERVERS
+  become: yes
+
+  tasks:
+
+#=========== Check system disk size
+  - block: 
+      - parted: device=/dev/xvda1 unit=GiB 
+        register: sdb_info 
+    
+      - name: Checking system disk size 
+        debug: 
+          msg: "OK" 
+        when: " sdb_info.disk.size >= 15" 
+       
+      - name: Checking system disk size 
+        debug:
+          msg: "NOT ok"
+        when: " sdb_info.disk.size  < 15"
+  
+
+#=========== Check mount points
+
+  - name: Checking mount points
+    shell: df -P /snap/amazon-ssm-agent/4046 | tail -1 | cut -d' ' -f 1
+    register: disk_info
+
+  - name: Checking 1 location
+    debug:
+      msg: "OK"
+    when: disk_info.stdout == "/dev/loop0"
+
+  - name: Checking 1 location
+    debug: 
+      msg: "NOT ok"
+    when: disk_info.stdout != "/dev/loop0"
+
+
+
+#========== Check volume size
+
+  - parted: device=/dev/loop0 unit=GiB
+    register: vol_1_info
+
+  - name: Checking volume 1 size
+    debug: 
+      msg: "OK"
+    when: "vol_1_info.disk.size >= 20"
+
+  - name: Cheking Volume 1 size
+    debug: 
+      msg: "NOT ok"
+    when: "vol_1_info.disk.size < 20"
+
+#========== Check packages
+
+  - name: Getting a list of packages 
+    package_facts:
+      manager: "auto"
+    
+  - name: Searching --> openjdk8          
+    debug: 
+      msg: "OK" 
+    when: "'openjdk8' in ansible_facts.packages" 
+ 
+  - name: Searching --> openjdk8  
+    debug: 
+      msg: "NOT ok"
+    when: "'openjdk8' not in ansible_facts.packages"
+
+  - name: Searching --> IPA-client  
+    debug: 
+      msg: "OK" 
+    when: "'IPA-client' in ansible_facts.packages" 
+
+  - name: Searching --> IPA-client
+    debug: 
+      msg: "NOT ok"
+    when: "'IPA-client' not in ansible_facts.packages"
+
+  - name: Searching --> sssd 
+    debug: 
+      msg: "OK" 
+    when: "'sssd' in ansible_facts.packages" 
+ 
+  - name: Searching --> sssd
+    debug: 
+      msg: "NOT ok"
+    when: "'sssd' not in ansible_facts.packages"
+
+
+#========== Check limits
+  
+  - name: Cheking u_s_t_waggle_dance hard nofile
+    shell: cat /etc/security/limits.conf
+    register: line_dance_hard
+
+  - name: Cheking limits in config
+    when: line_dance_hard.stdout.find('u_s_t_waggle_dance hard nofile 65536') != -1
+    debug:
+      msg: "OK"
+
+  - name: Cheking limits in config 
+    when: line_dance_hard.stdout.find('u_s_t_waggle_dance hard nofile 65536') == -1 
+    debug:
+      msg: "NOT ok"
+
+  - name: Cheking u_s_t_waggle_dance soft nofile 
+    shell: cat /etc/security/limits.conf 
+    register: line_dance_soft 
+
+  - name: Cheking limits in config
+    when: line_dance_soft.stdout.find('u_s_t_waggle_dance soft nofile 65536') != -1 
+    debug: 
+      msg: "OK" 
+  
+  - name: Cheking limits in config 
+    when: line_dance_soft.stdout.find('u_s_t_waggle_dance soft nofile 65536') == -1 
+    debug:
+      msg: "NOT ok"
+
+  - name: Cheking u_s_t_sentry_proxy hard nofile 
+    shell: cat /etc/security/limits.conf 
+    register: line_proxy_hard 
+
+  - name: Cheking limits in config
+    when: line_proxy_hard.stdout.find('u_s_t_sentry_proxy hard nofile 65536') != -1 
+    debug: 
+      msg: "OK"
+   
+  - name: Cheking limits in config 
+    when: line_proxy_hard.stdout.find('u_s_t_sentry_proxy hard nofile 65536') == -1 
+    debug:
+      msg: "NOT ok"
+
+  - name: Cheking u_s_t_sentry_proxy soft nofile 
+    shell: cat /etc/security/limits.conf 
+    register: line_proxy_soft
+
+  - name: Cheking limits in config 
+    when: line_proxy_soft.stdout.find('u_s_t_sentry_proxy soft nofile 65536') != -1 
+    debug: 
+      msg: "OK" 
+
+  - name: Cheking limits in config
+    when: line_proxy_soft.stdout.find('u_s_t_sentry_proxy soft nofile 65536') == -1 
+    debug:
+      msg: "NOT ok"
